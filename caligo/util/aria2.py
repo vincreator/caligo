@@ -503,7 +503,7 @@ class DirectLinks:
     async def racaty(self, url: str) -> str:
         dl_url = ''
         try:
-                re.findall(r'\bhttps?://.*racaty.net\S+', url)[0]
+                re.findall(r'\bhttps?://.*racaty.io\S+', url)[0]
         except IndexError:
                 raise ValueError("No Racaty links found")
         async with self.http.get(url) as resp:
