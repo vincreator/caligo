@@ -48,7 +48,7 @@ class Bot(TelegramBot, CommandDispatcher, DatabaseProvider, EventDispatcher,
             await bot.run()
             return bot
         finally:
-            if bot is None or (bot is not None and not bot.stopping):
+            if bot is None or not bot.stopping:
                 asyncio.get_event_loop().stop()
 
     async def stop(self) -> None:

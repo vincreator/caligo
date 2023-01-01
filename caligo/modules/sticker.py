@@ -239,7 +239,7 @@ class StickerModule(module.Module):
         if not reply_msg.sticker:
             return "__That message is not a sticker.__"
 
-        num = ctx.input if ctx.input else "1"
+        num = ctx.input or "1"
         check = self.kang_db.get(num) if self.kang_db is not None else None
         if check:
             try:
@@ -253,7 +253,7 @@ class StickerModule(module.Module):
                 return "__Pack with that name already exists, use 'kang' instead.__"
 
         emoji = ctx.args[1] if len(ctx.args) > 1 else "❓"
-        pack_name = self.bot.user.username + f"_kangPack_VOL{num}"
+        pack_name = f"{self.bot.user.username}_kangPack_VOL{num}"
         await self.db.update_one(
             {"_id": self.name},
             {

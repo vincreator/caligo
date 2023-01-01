@@ -26,7 +26,7 @@ class TextModule(module.Module):
         text = ctx.input
         if not text and ctx.msg.reply_to_message:
             text = ctx.msg.reply_to_message.text
-        elif not text and not ctx.msg.reply_to_message:
+        elif not text:
             return "__Give me a text or reply to a message.__"
 
         chars = [text]
@@ -43,7 +43,7 @@ class TextModule(module.Module):
         text = ctx.input
         if not text and ctx.msg.reply_to_message:
             text = ctx.msg.reply_to_message.text
-        elif not text and not ctx.msg.reply_to_message:
+        elif not text:
             return "__Give me a text or reply to a message.__"
 
         return "\u0336".join(text) + "\u0336"
@@ -54,7 +54,7 @@ class TextModule(module.Module):
         text = ctx.input
         if not text and ctx.msg.reply_to_message:
             text = ctx.msg.reply_to_message.text
-        elif not text and not ctx.msg.reply_to_message:
+        elif not text:
             return "__Give me a text or reply to a message.__"
 
         chars = []
@@ -87,7 +87,7 @@ class TextModule(module.Module):
         text = ctx.input
         if not text and ctx.msg.reply_to_message:
             text = ctx.msg.reply_to_message.text
-        elif not text and not ctx.msg.reply_to_message:
+        elif not text:
             return "__Give me a text or reply to a message.__"
 
         return "\n".join("👏".join(line.split()) for line in text.split("\n"))
@@ -99,7 +99,7 @@ class TextModule(module.Module):
         text = ctx.input
         if not text and ctx.msg.reply_to_message:
             text = ctx.msg.reply_to_message.text
-        elif not text and not ctx.msg.reply_to_message:
+        elif not text:
             return "__Give me a text or reply to a message.__"
 
         return base64.b64encode(text.encode("utf-8")).decode()
@@ -111,7 +111,7 @@ class TextModule(module.Module):
         text = ctx.input
         if not text and ctx.msg.reply_to_message:
             text = ctx.msg.reply_to_message.text
-        elif not text and not ctx.msg.reply_to_message:
+        elif not text:
             return "__Give me a text or reply to a message.__"
 
         try:

@@ -74,10 +74,7 @@ class EventDispatcher(Base):
         to_unreg = []
 
         for lst in self.listeners.values():
-            for listener in lst:
-                if listener.module == mod:
-                    to_unreg.append(listener)
-
+            to_unreg.extend(listener for listener in lst if listener.module == mod)
         for listener in to_unreg:
             self.unregister_listener(listener)
 

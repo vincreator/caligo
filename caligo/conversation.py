@@ -50,25 +50,17 @@ class Conversation:
         return self._chat
 
     async def send_message(self, text, **kwargs) -> Message:
-        sent = await self.client.send_message(self.chat.id, text, **kwargs)
-
-        return sent
+        return await self.client.send_message(self.chat.id, text, **kwargs)
 
     async def send_file(self, document, **kwargs) -> Optional[Message]:
-        doc = await self.client.send_document(self.chat.id, document, **kwargs)
-
-        return doc
+        return await self.client.send_document(self.chat.id, document, **kwargs)
 
     async def get_response(self, **kwargs) -> Message:
-        response = await self._get_message(**kwargs)
-
-        return response
+        return await self._get_message(**kwargs)
 
     async def get_reply(self, **kwargs) -> Message:
         filters = pyrogram.filters.reply
-        response = await self._get_message(filters=filters, **kwargs)
-
-        return response
+        return await self._get_message(filters=filters, **kwargs)
 
     async def mark_read(self, max_id: int = 0) -> bool:
         return await self.bot.client.read_history(self.chat.id, max_id)

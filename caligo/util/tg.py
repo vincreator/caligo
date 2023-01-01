@@ -24,15 +24,13 @@ def mention_user(user: pyrogram.types.User) -> str:
     if user.username:
         # Use username mention if possible
         name = f"@{user.username}"
+    elif user.first_name and user.last_name:
+        name = f"{user.first_name} {user.last_name}"
+    elif user.first_name:
+        name = user.first_name
     else:
-        # Use the first and last name otherwise
-        if user.first_name and user.last_name:
-            name = user.first_name + " " + user.last_name
-        elif user.first_name and not user.last_name:
-            name = user.first_name
-        else:
-            # Deleted accounts have no name; behave like the official clients
-            name = "Deleted Account"
+        # Deleted accounts have no name; behave like the official clients
+        name = "Deleted Account"
 
     return f"[{name}](tg://user?id={user.id})"
 
@@ -154,10 +152,7 @@ async def send_as_document(content: str,
                            caption: str) -> pyrogram.types.Message:
     with io.BytesIO(str.encode(content)) as o:
         o.name = str(uuid.uuid4()).split("-")[0].upper() + ".TXT"
-        return await msg.reply_document(
-            document=o,
-            caption="❯ ```" + caption + "```",
-        )
+        return await msg.reply_document(document=o, caption=f"❯ ```{caption}```")
 
 
 async def get_text_input(

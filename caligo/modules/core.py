@@ -29,10 +29,10 @@ class CoreModule(module.Module):
 
     def build_button(self) -> List[List[InlineKeyboardButton]]:
         modules = list(self.bot.modules.keys())
-        button: List[InlineKeyboardButton] = []
-        for mod in modules:
-            button.append(InlineKeyboardButton(
-                mod, callback_data=f"menu({mod})".encode()))
+        button: List[InlineKeyboardButton] = [
+            InlineKeyboardButton(mod, callback_data=f"menu({mod})".encode())
+            for mod in modules
+        ]
         buttons = [
             button[i * 3:(i + 1) * 3]
             for i in range((len(button) + 3 - 1) // 3)
@@ -129,7 +129,7 @@ class CoreModule(module.Module):
             if cmd.module.name != mod:
                 continue
 
-            desc = cmd.desc if cmd.desc else "__No description provided__"
+            desc = cmd.desc or "__No description provided__"
             aliases = ""
             if cmd.aliases:
                 aliases = f' (aliases: {", ".join(cmd.aliases)})'
@@ -165,7 +165,7 @@ class CoreModule(module.Module):
                 return "__Bot Inline Disabled__"
             else:
                 await ctx.msg.delete()
-    
+
             res: Any = await self.bot.client.send_inline_bot_result(
                 ctx.msg.chat.id, response.query_id, response.results[1].id)
             self.cache[res.updates[0].id] = ctx.msg.chat.id
@@ -190,7 +190,7 @@ class CoreModule(module.Module):
                     if cmd.usage_reply:
                         args_desc += " (also accepts replies)"
 
-                return f"""`{cmd.name}`: **{cmd.desc if cmd.desc else '__No description provided.__'}**
+                return f"""`{cmd.name}`: **{cmd.desc or '__No description provided.__'}**
 
 Module: {cmd.module.name}
 Aliases: {aliases}
@@ -199,14 +199,9 @@ Expected parameters: {args_desc}"""
             return "__That filter didn't match any commands or modules.__"
 
         for name, cmd in self.bot.commands.items():
-            if filt:
-                if cmd.module.name != filt:
-                    continue
-            else:
-                if name != cmd.name:
-                    continue
-
-            desc = cmd.desc if cmd.desc else "__No description provided__"
+            if filt and cmd.module.name != filt or not filt and name != cmd.name:
+                continue
+            desc = cmd.desc or "__No description provided__"
             aliases = ""
             if cmd.aliases:
                 aliases = f' (aliases: {", ".join(cmd.aliases)})'
@@ -256,7 +251,7 @@ Expected parameters: {args_desc}"""
         commit = await util.run_sync(util.version.get_commit)
         dirty = ", dirty" if await util.run_sync(util.git.is_dirty) else ""
         unofficial = (
-            ", unofficial" if not await util.run_sync(util.git.is_official) else ""
+            "" if await util.run_sync(util.git.is_official) else ", unofficial"
         )
         version = (
             f"{__version__} (<code>{commit}</code>{dirty}{unofficial})"
