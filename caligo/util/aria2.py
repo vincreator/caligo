@@ -499,3 +499,21 @@ class DirectLinks:
         if resp.status != 302:
             raise ValueError("ERROR: Unauthorized link, the link may be private")
         return resp.headers["location"]
+
+    async def racaty(self, url: str) -> str:
+        dl_url = ''
+        try:
+                re.findall(r'\bhttps?://.*racaty.net\S+', url)[0]
+        except IndexError:
+                raise ValueError("No Racaty links found")
+        async with self.http.get(url) as resp:
+                page_source = await resp.text()
+                soup = BeautifulSoup(page_source, "lxml")
+                op = soup.find("input", {"name": "op"})["value"]
+                ids = soup.find("input", {"name": "id"})["value"]
+                data = {"op": op, "id": ids}
+        async with self.http.post(url, data = data) as resp:
+                page_source = await resp.text()
+                rsoup = BeautifulSoup(page_source, "lxml")
+                dl_url = rsoup.find("a", {"id": "uniqueExpirylink"})["href"].replace(" ", "%20")
+        return dl_url
