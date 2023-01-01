@@ -485,9 +485,10 @@ class DirectLinks:
 
     async def solidfiles(self, url: str) -> str:
         headers = {'User-Agent': self.user_agent}
-        page_source = await self.http.get(url, headers=headers)
-        page_source = await page_source.text()
-        main_options = str(re.search(r'viewerOptions\'\,\ (.*?)\)\;', page_source).group(1))
+        async with self.http.get(url, headers = headers) as resp:
+            page_source = await resp.text()
+            soup = BeautifulSoup(page_source, 'html.parser')
+            main_options = str(re.search(r'viewerOptions\'\,\ (.*?)\)\;', page_source).group(1))
         return json.loads(main_options)["downloadUrl"]
 
     async def onedrive(self, link: str) -> str:
