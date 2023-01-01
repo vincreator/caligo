@@ -1,6 +1,10 @@
+import os
 import json
 import re
 import socket
+import asyncio
+from base64 import standard_b64encode
+from urllib.parse import urlparse, unquote
 from datetime import datetime, timedelta
 from mimetypes import guess_type
 from typing import Any, Dict, List, Optional
@@ -398,3 +402,99 @@ class DirectLinks:
                     return link
 
                 raise ValueError("Unexpected response, can't find download url")
+    
+    async def yandex_disk(self, url: str) -> str:
+        """ Yandex.Disk direct link generator
+        Based on https://github.com/wldhx/yadisk-direct """
+        try:
+            link = re.findall(r'\b(https?://(yadi.sk|disk.yandex.com)\S+)', url)[0][0]
+        except IndexError:
+            return "No Yandex.Disk links found\n"
+        api = 'https://cloud-api.yandex.net/v1/disk/public/resources/download?public_key={}'
+        try:
+            async with self.http.get(api.format(link)) as resp:
+                return (await resp.json())['href']
+        except KeyError:
+            raise ValueError("ERROR: File not found/Download limit reached")
+    
+    async def uptobox(self, url: str) -> str:
+        """ Uptobox direct link generator
+        based on https://github.com/jovanzers/WinTenCermin and https://github.com/sinoobie/noobie-mirror """
+        try:
+            link = re.findall(r'\bhttps?://.*uptobox\.com\S+', url)[0]
+        except IndexError:
+            raise ValueError("No Uptobox links found")
+        UPTOBOX_TOKEN = os.environ.get("UPTOBOX_TOKEN")
+        if not UPTOBOX_TOKEN:
+            dl_url = link
+        else:
+            try:
+                link = re.findall(r'\bhttp?://.*uptobox\.com/dl\S+', url)[0]
+                dl_url = link
+            except:
+                file_id = re.findall(r'\bhttps?://.*uptobox\.com/(\w+)', url)[0]
+                file_link = f'https://uptobox.com/api/link?token={UPTOBOX_TOKEN}&file_code={file_id}'
+                async with self.http.get(file_link) as resp:
+                    result = await resp.json()
+                    if result['message'].lower() == 'success':
+                        dl_url = result['data']['dlLink']
+                    elif result['message'].lower() == 'waiting needed':
+                        waiting_time = result["data"]["waiting"] + 1
+                        waiting_token = result["data"]["waitingToken"]
+                        await asyncio.sleep(waiting_time)
+                        async with self.http.get(f"{file_link}&waitingToken={waiting_token}") as resp2:
+                            result2 = await resp2.json()
+                            dl_url = result2['data']['dlLink']
+                    elif result['message'].lower() == 'you need to wait before requesting a new download link':
+                        cooldown = divmod(result['data']['waiting'], 60)
+                        raise ValueError(f"ERROR: Uptobox is being limited please wait {cooldown[0]} min {cooldown[1]} sec.")
+                    else:
+                        raise ValueError(f"ERROR: {result['message']}")
+        return dl_url
+    
+    async def osdn(self, url: str) -> str:
+        """ OSDN direct link generator """
+        osdn_link = 'https://osdn.net'
+        try:
+            link = re.findall(r'\bhttps?://.*osdn\.net\S+', url)[0]
+        except IndexError:
+            return "No OSDN links found"
+        async with self.http.get(link, allow_redirects=True) as resp:
+            page = BeautifulSoup(await resp.text(), 'lxml')
+            info = page.find('a', {'class': 'mirror_link'})
+            link = unquote(osdn_link + info['href'])
+            mirrors = page.find('form', {'id': 'mirror-select-form'}).findAll('tr')
+            urls = []
+            for data in mirrors[1:]:
+                mirror = data.find('input')['value']
+                urls.append(re.sub(r'm=(.*)&f', f'm={mirror}&f', link))
+            return urls[0]
+    
+    async def github(self, url: str) -> str:
+        """ GitHub direct links generator """
+        try:
+            re.findall(r'\bhttps?://.*github\.com.*releases\S+', url)[0]
+        except IndexError:
+            return None
+
+        async with self.http.get(url, allow_redirects=False) as resp:
+            try:
+                return resp.headers["location"]
+            except KeyError:
+             return None
+
+    async def solidfiles(self, url: str) -> str:
+        headers = {'User-Agent': self.user_agent}
+        page_source = await self.http.get(url, headers=headers)
+        page_source = await page_source.text()
+        main_options = str(re.search(r'viewerOptions\'\,\ (.*?)\)\;', page_source).group(1))
+        return json.loads(main_options)["downloadUrl"]
+
+    async def onedrive(self, link: str) -> str:
+        link_without_query = urlparse(link)._replace(query=None).geturl()
+        direct_link_encoded = str(standard_b64encode(bytes(link_without_query, "utf-8")), "utf-8")
+        direct_link1 = f"https://api.onedrive.com/v1.0/shares/u!{direct_link_encoded}/root/content"
+        resp = await self.http.head(direct_link1)
+        if resp.status != 302:
+            raise ValueError("ERROR: Unauthorized link, the link may be private")
+        return resp.headers["location"]
