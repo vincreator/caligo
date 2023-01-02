@@ -295,7 +295,7 @@ class DirectLinks:
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/90.0.4430.210 Mobile Safari/537.36"
         )
-        
+
     async def __call__(self, mode: str, url: str) -> Any:
         try:
             func = getattr(self, mode)
@@ -505,19 +505,17 @@ class DirectLinks:
         """ Racaty direct link generator
         based on https://github.com/SlamDevs/slam-mirrorbot"""
         try:
-            if re.findall(r'\bhttps?://.*racaty.net\S+', url)[0] or re.findall(r'\bhttps?://.*racaty.io\S+', url)[0]:
-                async with self.http.get(url) as resp:
-                    page_source = await resp.text()
-                soup = BeautifulSoup(page_source, "lxml")
-                op = soup.find("input", {"name": "op"})["value"]
-                ids = soup.find("input", {"name": "id"})["value"]
-                async with self.http.post(url, data = {"op": op, "id": ids}) as resp:
-                    rapost_source = await resp.text()
-                rsoup = BeautifulSoup(rapost_source, "lxml")
-                return rsoup.find("a", {"id": "uniqueExpirylink"})["href"].replace(" ", "%20")
-            else:
-                raise ValueError("No Racaty links found")
-        except Exception as e:
-            raise e
-        finally:
-            await self.http.close()
+            if re.findall(r'\bhttps?://.*racaty.net\S+', url):
+                url = url.replace("https", "http")
+            async with self.http.get(url) as response:
+                page_source = await response.text()
+            if "File Not Found" in page_source:
+                return None
+            regex = r'data-url\="(.*?)"'
+            matches = re.finditer(regex, page_source, re.MULTILINE)
+            for matchNum, match in enumerate(matches):
+                matchNum = matchNum + 1
+                link = match.group()
+                return link[11:-1]
+        except Exception:
+            return None
