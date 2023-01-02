@@ -295,7 +295,7 @@ class DirectLinks:
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/90.0.4430.210 Mobile Safari/537.36"
         )
-
+        
     async def __call__(self, mode: str, url: str) -> Any:
         try:
             func = getattr(self, mode)
@@ -485,11 +485,12 @@ class DirectLinks:
 
     async def solidfiles(self, url: str) -> str:
         headers = {'User-Agent': self.user_agent}
-        async with self.http.get(url, headers = headers) as resp:
-            page_source = await resp.text()
-            soup = BeautifulSoup(page_source, 'html.parser')
-            main_options = str(re.search(r'viewerOptions\'\,\ (.*?)\)\;', page_source).group(1))
-        return json.loads(main_options)["downloadUrl"]
+        async with aiohttp.ClientSession() as http:
+            async with http.get(url, headers = headers) as resp:
+                page_source = await resp.text()
+                soup = BeautifulSoup(page_source, 'html.parser')
+                main_options = str(re.search(r'viewerOptions\'\,\ (.*?)\)\;', page_source).group(1))
+            return json.loads(main_options)["downloadUrl"]
 
     async def onedrive(self, link: str) -> str:
         link_without_query = urlparse(link)._replace(query=None).geturl()
@@ -501,19 +502,22 @@ class DirectLinks:
         return resp.headers["location"]
 
     async def racaty(self, url: str) -> str:
-        dl_url = ''
+        """ Racaty direct link generator
+        based on https://github.com/SlamDevs/slam-mirrorbot"""
         try:
-                re.findall(r'\bhttps?://.*racaty.io\S+', url)[0]
-        except IndexError:
-                raise ValueError("No Racaty links found")
-        async with self.http.get(url) as resp:
-                page_source = await resp.text()
+            if re.findall(r'\bhttps?://.*racaty.net\S+', url)[0] or re.findall(r'\bhttps?://.*racaty.io\S+', url)[0]:
+                async with self.http.get(url) as resp:
+                    page_source = await resp.text()
                 soup = BeautifulSoup(page_source, "lxml")
                 op = soup.find("input", {"name": "op"})["value"]
                 ids = soup.find("input", {"name": "id"})["value"]
-                data = {"op": op, "id": ids}
-        async with self.http.post(url, data = data) as resp:
-                page_source = await resp.text()
-                rsoup = BeautifulSoup(page_source, "lxml")
-                dl_url = rsoup.find("a", {"id": "uniqueExpirylink"})["href"].replace(" ", "%20")
-        return dl_url
+                async with self.http.post(url, data = {"op": op, "id": ids}) as resp:
+                    rapost_source = await resp.text()
+                rsoup = BeautifulSoup(rapost_source, "lxml")
+                return rsoup.find("a", {"id": "uniqueExpirylink"})["href"].replace(" ", "%20")
+            else:
+                raise ValueError("No Racaty links found")
+        except Exception as e:
+            raise e
+        finally:
+            await self.http.close()
