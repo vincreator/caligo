@@ -1,5 +1,6 @@
 import os
 import json
+import ast
 import re
 import socket
 import asyncio
@@ -489,8 +490,8 @@ class DirectLinks:
             async with http.get(url, headers = headers) as resp:
                 page_source = await resp.text()
                 main_options = str(re.search(r'viewerOptions\'\,\ (.*?)\)\;', page_source).group(1))
-                data = json.loads(main_options)
-        return data["downloadUrl"]
+                data = ast.literal_eval(main_options)
+            return data["downloadUrl"]
 
     async def onedrive(self, link: str) -> str:
         link_without_query = urlparse(link)._replace(query=None).geturl()
@@ -503,7 +504,7 @@ class DirectLinks:
 
     async def racaty(self, url: str) -> str:
         """ Racaty direct link generator
-        based on https://github.com/SlamDevs/slam-mirrorbot"""
+            based on https://github.com/SlamDevs/slam-mirrorbot"""
         try:
             if re.findall(r'\bhttps?://.*racaty.net\S+', url):
                 async with aiohttp.ClientSession() as session:
@@ -511,10 +512,9 @@ class DirectLinks:
                         if resp.status == 200:
                             page = await resp.text()
                         try:
-                            data = json.loads(re.search(r'var\s*yt_player_config\s*=\s*(\{.*?\});', page).group(1))
+                            data = ast.literal_eval(re.search(r'var\s*yt_player_config\s*=\s*(\{.*?\});', page).group(1))
                             return data['args']['url_encoded_fmt_stream_map'].split(',')[0].split('url=')[1]
                         except AttributeError:
                             return None
         except Exception as e:
             return None
-
