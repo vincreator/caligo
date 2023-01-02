@@ -487,11 +487,12 @@ class DirectLinks:
     async def solidfiles(self, url: str) -> str:
         headers = {'User-Agent': self.user_agent}
         async with aiohttp.ClientSession() as http:
-            async with http.get(url, headers = headers) as resp:
+            async with http.get(url, headers=headers) as resp:
                 page_source = await resp.text()
+                soup = BeautifulSoup(page_source, 'html.parser')
                 main_options = str(re.search(r'viewerOptions\'\,\ (.*?)\)\;', page_source).group(1))
-                data = ast.literal_eval(main_options)
-            return data["downloadUrl"]
+                options = json.loads(main_options)
+        return options["MIRRORS"]
 
     async def onedrive(self, link: str) -> str:
         link_without_query = urlparse(link)._replace(query=None).geturl()
