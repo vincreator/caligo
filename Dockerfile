@@ -73,7 +73,7 @@ RUN apk add --no-cache \
 # Install lxml need
 RUN apk add --no-cache \
         libxml2-dev \
-        libxslt1-dev
+        libxslt-dev
 
 # Create bot user
 RUN adduser -D caligo
