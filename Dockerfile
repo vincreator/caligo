@@ -70,6 +70,10 @@ RUN apk add --no-cache \
         libssh2 \
         ca-certificates \
         ffmpeg
+# Install lxml need
+RUN apk add --no-cache \
+        libxml2-dev \
+        libxslt1-dev
 
 # Create bot user
 RUN adduser -D caligo
