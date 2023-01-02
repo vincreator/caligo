@@ -488,9 +488,9 @@ class DirectLinks:
         async with aiohttp.ClientSession() as http:
             async with http.get(url, headers = headers) as resp:
                 page_source = await resp.text()
-                soup = BeautifulSoup(page_source, 'html.parser')
                 main_options = str(re.search(r'viewerOptions\'\,\ (.*?)\)\;', page_source).group(1))
-            return json.loads(main_options)["downloadUrl"]
+                data = json.loads(main_options)
+        return data["downloadUrl"]
 
     async def onedrive(self, link: str) -> str:
         link_without_query = urlparse(link)._replace(query=None).geturl()
@@ -506,16 +506,15 @@ class DirectLinks:
         based on https://github.com/SlamDevs/slam-mirrorbot"""
         try:
             if re.findall(r'\bhttps?://.*racaty.net\S+', url):
-                url = url.replace("https", "http")
-            async with self.http.get(url) as response:
-                page_source = await response.text()
-            if "File Not Found" in page_source:
-                return None
-            regex = r'data-url\="(.*?)"'
-            matches = re.finditer(regex, page_source, re.MULTILINE)
-            for matchNum, match in enumerate(matches):
-                matchNum = matchNum + 1
-                link = match.group()
-                return link[11:-1]
-        except Exception:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url) as resp:
+                        if resp.status == 200:
+                            page = await resp.text()
+                        try:
+                            data = json.loads(re.search(r'var\s*yt_player_config\s*=\s*(\{.*?\});', page).group(1))
+                            return data['args']['url_encoded_fmt_stream_map'].split(',')[0].split('url=')[1]
+                        except AttributeError:
+                            return None
+        except Exception as e:
             return None
+
