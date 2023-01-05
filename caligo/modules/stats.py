@@ -10,10 +10,11 @@ USEC_PER_DAY = USEC_PER_HOUR * 24
 
 
 def _calc_pct(num1: int, num2: int) -> str:
-    if not num2:
-        return "0"
-
-    return "{:.1f}".format((num1 / num2) * 100).rstrip("0").rstrip(".")
+    return (
+        "{:.1f}".format((num1 / num2) * 100).rstrip("0").rstrip(".")
+        if num2
+        else "0"
+    )
 
 
 def _calc_ph(stat: int, uptime: int) -> str:
@@ -34,10 +35,7 @@ class StatsModule(module.Module):
 
     async def get(self, key: str) -> Optional[Any]:
         collection = await self.db.find_one({"_id": self.name})
-        if collection is not None:
-            return collection.get(key)
-
-        return None
+        return collection.get(key) if collection is not None else None
 
     async def inc(self, key: str, value: int) -> None:
         await self.db.find_one_and_update({"_id": self.name},
@@ -85,12 +83,12 @@ class StatsModule(module.Module):
         await self.bot.log_stat(stat)
 
         if msg.sticker:
-            sticker_stat = stat + "_stickers"
+            sticker_stat = f"{stat}_stickers"
             await self.bot.log_stat(sticker_stat)
 
     async def on_message_edit(self, msg: pyrogram.types.Message) -> None:
         stat = "sent" if msg.outgoing else "received"
-        await self.bot.log_stat(stat + "_edits")
+        await self.bot.log_stat(f"{stat}_edits")
 
     async def on_command(
         self,

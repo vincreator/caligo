@@ -58,10 +58,7 @@ def get_current_remote() -> "Optional[git.Remote]":
         return None
 
     remote_ref = repo.active_branch.tracking_branch()
-    if remote_ref is None:
-        return None
-
-    return repo.remote(remote_ref.remote_name)
+    return None if remote_ref is None else repo.remote(remote_ref.remote_name)
 
 
 def is_dirty() -> bool:
@@ -69,10 +66,7 @@ def is_dirty() -> bool:
 
     # Assume non-Git instances are clean, e.g. when installed with pip
     repo = get_repo()
-    if not repo:
-        return False
-
-    return repo.is_dirty()
+    return repo.is_dirty() if repo else False
 
 
 def is_official() -> bool:
@@ -89,7 +83,4 @@ def is_official() -> bool:
 
     # Assume Git instances without a tracking remote are unofficial
     remote = get_current_remote()
-    if not remote:
-        return False
-
-    return all(REPO in url for url in remote.urls)
+    return all(REPO in url for url in remote.urls) if remote else False

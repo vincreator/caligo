@@ -52,7 +52,7 @@ class HerokuManager(module.Module):
         }
 
         if options is not None:
-            headers.update(options)
+            headers |= options
 
         async with self.http.get(path, headers=headers) as resp:
             if resp.status != 200:
@@ -63,19 +63,19 @@ class HerokuManager(module.Module):
             return await resp.json()
 
     async def get_account(self) -> Dict[Any, Any]:
-        path = self.uri + "/account"
+        path = f"{self.uri}/account"
         return await self.request(path)
 
     async def get_account_quota(self) -> Dict[str, Any]:
         options = {
             "Accept": "application/vnd.heroku+json; version=3.account-quotas"
         }
-        path = self.uri + f"/accounts/{self.account['id']}/actions/get-quota"
+        path = f"{self.uri}/accounts/{self.account['id']}/actions/get-quota"
 
         return await self.request(path, options)
 
     async def get_account_apps(self) -> AsyncIterator[Tuple[str, int]]:
-        path = self.uri + "/apps"
+        path = f"{self.uri}/apps"
         apps = await self.request(path)
         for app in apps:
             yield app["name"], app["id"]

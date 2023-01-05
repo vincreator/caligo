@@ -20,14 +20,12 @@ class ModerationModule(module.Module):
         tag: str = "\U000e0020everyone",
         user_filter: Optional[str] = "all",
     ) -> Optional[str]:
-        comment = ctx.input
-
         if ctx.msg.chat.type == "private":
             return "__This command can only be used in groups.__"
 
         mention_text = f"@{tag}"
-        if comment:
-            mention_text += " " + comment
+        if comment := ctx.input:
+            mention_text += f" {comment}"
 
         mention_slots = 4096 - len(mention_text)
 
@@ -105,9 +103,9 @@ class ModerationModule(module.Module):
             else:
                 lines.append(user_spec)
 
-            is_administrator = bool(
-                (await self.bot.client.get_chat_member(ctx.msg.chat.id, user.id)
-                ).status == "administrator")
+            is_administrator = (
+                await self.bot.client.get_chat_member(ctx.msg.chat.id, user.id)
+            ).status == "administrator"
 
             if is_administrator:
                 return "__I'm not gonna ban admin.__"
@@ -160,10 +158,10 @@ class ModerationModule(module.Module):
             else:
                 pruned_count += 1
 
-            percent_done = int((idx + 1) / total_count * 100)
             now = datetime.now()
             delta = now - last_time
             if delta.total_seconds() >= 5:
+                percent_done = int((idx + 1) / total_count * 100)
                 await ctx.respond(
                     f"{status_text} {percent_done}% done ({idx + 1} of {total_count} processed; {pruned_count} banned; {err_count} failed)"
                 )

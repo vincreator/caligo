@@ -185,7 +185,7 @@ class Aria2WebSocketServer:
                     f"**GoogleDrive folderLink**: [{file.name}]"
                     f"(https://drive.google.com/drive/folders/{folderId})")
                 if self.index_link is not None:
-                    link = join(self.index_link, parse.quote(file.name + "/"))
+                    link = join(self.index_link, parse.quote(f"{file.name}/"))
                     folderLink += f"\n\n__IndexLink__: [Here]({link})."
 
                 async with self.lock:
@@ -259,7 +259,7 @@ class Aria2WebSocketServer:
                 (file.complete and file.metadata) or file.removed):
                 continue
 
-            if file.complete and not file.metadata:
+            if file.complete:
                 if await file.is_dir():
                     counter = self.uploads[file.gid]["counter"]
                     length = len(file.files)
@@ -385,7 +385,7 @@ class Aria2WebSocketServer:
         if not file.info_hash:
             return
 
-        file_path = file.dir / (file.info_hash + ".torrent")
+        file_path = file.dir / f"{file.info_hash}.torrent"
         if not await file_path.is_file():
             return
 
@@ -489,12 +489,11 @@ class Aria2(module.Module):
 
         status = res["status"]
         metadata = bool(res.get("followedBy"))
-        ret = None
         if status == "active":
             await self.client.forcePause(gid)
             await self.client.forceRemove(gid)
-        elif status == "complete" and metadata is True:
+        elif status == "complete" and metadata:
             return "__GID belongs to finished Metadata, can't be abort.__"
 
         self._ws.cancelled.add(gid)
-        return ret
+        return None

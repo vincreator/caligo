@@ -117,13 +117,13 @@ class CommandDispatcher(Base):
                 ret = await cmd.func(ctx)
 
                 if isinstance(ret, Tuple):
-                    if not isinstance(ret[1], (int, float)):
+                    if isinstance(ret[1], (int, float)):
+                        await ctx.respond(ret[0], delete_after=ret[1])
+                    else:
                         raise TypeError("Second value must be int/float, "
                                         f"got: {type(ret[1])}")
-                    await ctx.respond(ret[0], delete_after=ret[1])
-                else:
-                    if ret is not None:
-                        await ctx.respond(ret)
+                elif ret is not None:
+                    await ctx.respond(ret)
             except MessageNotModified:
                 cmd.module.log.warning(
                     f"Command '{cmd.name}' triggered a message edit with no changes"

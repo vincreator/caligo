@@ -381,28 +381,25 @@ Time: {el_str}"""
 
         # Check for dependency changes
         if any(change.a_path == "poetry.lock" for change in diff):
-            # Update dependencies automatically if running in venv
-            prefix = util.system.get_venv_path()
-            if prefix:
-                pip = str(Path(prefix) / "bin" / "pip")
-
-                await ctx.respond("Updating dependencies...")
-                stdout, _, ret = await util.system.run_command(
-                    pip, "install", repo.working_tree_dir
-                )
-                if ret != 0:
-                    return f"""⚠️ Error updating dependencies:
-
-```{stdout}```
-
-Fix the issue manually and then restart the bot."""
-            else:
+            if not (prefix := util.system.get_venv_path()):
                 return """Successfully pulled updates.
 
 **Update dependencies manually** to avoid errors, then restart the bot for the update to take effect.
 
 Dependency updates are automatic if you're running the bot in a virtualenv."""
 
+            pip = str(Path(prefix) / "bin" / "pip")
+
+            await ctx.respond("Updating dependencies...")
+            stdout, _, ret = await util.system.run_command(
+                pip, "install", repo.working_tree_dir
+            )
+            if ret != 0:
+                return f"""⚠️ Error updating dependencies:
+
+```{stdout}```
+
+Fix the issue manually and then restart the bot."""
         # Restart after updating
         await self.cmd_restart(ctx, restart_time=update_time, reason="update")
         return None

@@ -57,10 +57,7 @@ class TelegramBot(Base):
 
         string_session = self.getConfig["string_session"]
 
-        if isinstance(string_session, str):
-            mode = string_session
-        else:
-            mode = ":memory:"
+        mode = string_session if isinstance(string_session, str) else ":memory:"
         self.client = Client(api_id=api_id,
                              api_hash=api_hash,
                              session_name=mode)

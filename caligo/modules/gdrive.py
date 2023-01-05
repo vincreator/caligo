@@ -168,29 +168,30 @@ class GoogleDrive(module.Module):
 
     async def authorize(self,
                         message: pyrogram.types.Message) -> Optional[bool]:
-        if not self.creds or not self.creds.valid:
-            if self.creds and self.creds.expired and self.creds.refresh_token:
-                self.log.info("Refreshing credentials")
-                await util.run_sync(self.creds.refresh, Request())
+        if self.creds and self.creds.valid:
+            return
+        if self.creds and self.creds.expired and self.creds.refresh_token:
+            self.log.info("Refreshing credentials")
+            await util.run_sync(self.creds.refresh, Request())
 
-                credential = await util.run_sync(pickle.dumps, self.creds)
-                await self.db.find_one_and_update(
-                    {"_id": self.name}, {"$set": {
-                        "creds": credential
-                    }})
-            else:
-                await asyncio.gather(
-                    self.bot.respond(message,
-                                     "Credential is empty, generating..."),
-                    asyncio.sleep(2.5))
+            credential = await util.run_sync(pickle.dumps, self.creds)
+            await self.db.find_one_and_update(
+                {"_id": self.name}, {"$set": {
+                    "creds": credential
+                }})
+        else:
+            await asyncio.gather(
+                self.bot.respond(message,
+                                 "Credential is empty, generating..."),
+                asyncio.sleep(2.5))
 
-                ret = await self.getAccessToken(message)
+            ret = await self.getAccessToken(message)
 
-                await self.bot.respond(message, ret)
-                if self.creds is None:
-                    return False
+            await self.bot.respond(message, ret)
+            if self.creds is None:
+                return False
 
-            await self.on_load()
+        await self.on_load()
 
     async def getInfo(self, identifier: str,
                       fields: Iterable[str]) -> Dict[str, Any]:
@@ -203,7 +204,7 @@ class GoogleDrive(module.Module):
         metadata = {}
         if parent_id is not None:
             metadata["parents"] = [parent_id]
-        elif parent_id is None and self.parent_id is not None:
+        elif self.parent_id is not None:
             metadata["parents"] = [self.parent_id]
 
         file = await util.run_sync(self.service.files().copy(
@@ -246,7 +247,7 @@ class GoogleDrive(module.Module):
         }
         if folderId is not None:
             folder_metadata["parents"] = [folderId]
-        elif folderId is None and self.parent_id is not None:
+        elif self.parent_id is not None:
             folder_metadata["parents"] = [self.parent_id]
 
         folder = await util.run_sync(self.service.files().create(
@@ -289,7 +290,7 @@ class GoogleDrive(module.Module):
         body: Dict[str, Any] = {"name": file.name, "mimeType": file.mime_type}
         if parent_id is not None:
             body["parents"] = [parent_id]
-        elif parent_id is None and self.parent_id is not None:
+        elif self.parent_id is not None:
             body["parents"] = [self.parent_id]
 
         if (await file.path.stat()).st_size > 0:
@@ -435,10 +436,10 @@ class GoogleDrive(module.Module):
                                                               Tuple[str, int]]:
         if not ctx.input and not ctx.msg.reply_to_message:
             return "__Input the id of the file/folder or reply with abort__", 5
-        if ctx.msg.reply_to_message and ctx.input != "abort":
-            return "__Replying to message only for aborting task__", 5
-
         if ctx.msg.reply_to_message:
+            if ctx.input != "abort":
+                return "__Replying to message only for aborting task__", 5
+
             reply_msg_id = ctx.msg.reply_to_message.message_id
             for msg_id, identifier in self.copy_tasks.copy():
                 if msg_id == reply_msg_id:
@@ -574,8 +575,7 @@ class GoogleDrive(module.Module):
             types = ctx.input
 
         if isinstance(types, str):
-            match = DOMAIN.match(types)
-            if match:
+            if match := DOMAIN.match(types):
                 await ctx.respond("Generating direct link...")
 
                 direct = await self.getDirectLink(match.group(1), types)
@@ -606,8 +606,7 @@ class GoogleDrive(module.Module):
                     types = direct
 
         try:
-            ret = await self.aria2.addDownload(types, ctx.msg)
-            return ret
+            return await self.aria2.addDownload(types, ctx.msg)
         except NameError:
             return "__Mirroring torrent file/url needs Aria2 loaded.__"
 
@@ -664,13 +663,13 @@ class GoogleDrive(module.Module):
             query = f"'{parent}' in parents and (name contains '{name}')"
         elif parent is not None and name is None and filters is not None:
             query = f"'{parent}' in parents and ({filters})"
-        elif parent is not None and name is None and filters is None:
+        elif parent is not None and name is None:
             query = f"'{parent}' in parents"
         elif parent is None and name is not None and filters is not None:
             query = f"name contains '{name}' and {filters}"
-        elif parent is None and name is not None and filters is None:
+        elif parent is None and name is not None:
             query = f"name contains '{name}'"
-        elif parent is None and name is None and filters is not None:
+        elif parent is None and filters is not None:
             query = filters
         else:
             query = ""
